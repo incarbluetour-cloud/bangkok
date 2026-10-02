@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>방콕 실시간 시차·날씨·통화·전압</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/static/woff2/SUIT.css');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent;overflow:hidden}
+body{font-family:'SUIT',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#fff;word-break:keep-all;-webkit-text-size-adjust:100%}
+a{color:inherit;text-decoration:none}
+.ib{display:grid;grid-template-columns:repeat(4,1fr);padding:14px 0 12px}
+.ib-c{display:block;text-align:center;padding:2px 8px;border-left:1px solid rgba(255,255,255,.16);min-width:0}
+.ib-c:first-child{border-left:0}
+a.ib-c:hover .ib-m{color:#E2C26D}
+.ib-l{display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.4}
+.ib-dot{width:6px;height:6px;border-radius:50%;background:#5BD68A;box-shadow:0 0 0 0 rgba(91,214,138,.6);animation:ibp 2s infinite;flex:none}
+@keyframes ibp{0%{box-shadow:0 0 0 0 rgba(91,214,138,.55)}70%{box-shadow:0 0 0 6px rgba(91,214,138,0)}100%{box-shadow:0 0 0 0 rgba(91,214,138,0)}}
+.ib-m{display:block;margin-top:2px;font-size:18px;font-weight:800;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib-m em{font-style:normal;color:#E2C26D}
+.ib-mo{display:none}
+.ib-s{display:block;margin-top:2px;font-size:12px;color:rgba(255,255,255,.62);line-height:1.4}
+@media (max-width:520px){
+  .ib{padding:12px 0 10px}
+  .ib-c{padding:2px 3px}
+  .ib-l{font-size:10.5px;gap:3px}
+  .ib-dot{width:5px;height:5px}
+  .ib-x{display:none}
+  .ib-mo{display:inline}
+  .ib-m{font-size:clamp(12.5px,4.1vw,16px)}
+  .ib-s{font-size:10px;line-height:1.35}
+}
+</style>
+</head>
+<body>
+<div class="ib">
+  <div class="ib-c">
+    <span class="ib-l"><i class="ib-dot"></i>시차<span class="ib-x">· 방콕 지금</span></span>
+    <span class="ib-m" id="ib-time">한국 -2시간</span>
+    <span class="ib-s" id="ib-time-s">한국보다 2시간 느림</span>
+  </div>
+  <a class="ib-c" href="https://www.google.com/search?q=%EB%B0%A9%EC%BD%95+%EB%82%A0%EC%94%A8" target="_blank" rel="noopener">
+    <span class="ib-l"><i class="ib-dot"></i>날씨<span class="ib-x">· 방콕 현재</span></span>
+    <span class="ib-m" id="ib-wx">30℃ 안팎</span>
+    <span class="ib-s" id="ib-wx-s">11월 건기, 낮 30℃ 안팎</span>
+  </a>
+  <a class="ib-c" href="https://www.kebhana.com/exchange_rate/excRate.do?subMenu=1" target="_blank" rel="noopener">
+    <span class="ib-l"><i class="ib-dot"></i>통화<span class="ib-x">· 바트(THB)</span></span>
+    <span class="ib-m" id="ib-fx">THB</span>
+    <span class="ib-s" id="ib-fx-s">환율 확인하기</span>
+  </a>
+  <div class="ib-c">
+    <span class="ib-l">전압</span>
+    <span class="ib-m">220V</span>
+    <span class="ib-s">한국 플러그 대부분 사용</span>
+  </div>
+</div>
+<script>
+(function(){
+  var tEl=document.getElementById('ib-time'), tS=document.getElementById('ib-time-s');
+  function hm(tz,sec){return new Date().toLocaleTimeString('ko-KR',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:sec?'2-digit':undefined,hour12:false});}
+  function tick(){
+    try{
+      tEl.textContent=hm('Asia/Bangkok',true);
+      tS.textContent='서울 '+hm('Asia/Seoul',false)+' · 2시간 느림';
+    }catch(e){}
+  }
+  tick(); setInterval(tick,1000);
+
+  function wx(c){
+    if(c===0)return['☀️','맑음'];
+    if(c<=2)return['🌤️','구름 조금'];
+    if(c===3)return['☁️','흐림'];
+    if(c<=48)return['🌫️','안개'];
+    if(c<=57)return['🌦️','이슬비'];
+    if(c<=67)return['🌧️','비'];
+    if(c<=77)return['🌨️','눈'];
+    if(c<=82)return['🌧️','소나기'];
+    if(c<=86)return['🌨️','눈'];
+    return['⛈️','뇌우'];
+  }
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=13.7563&longitude=100.5018&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code&timezone=Asia%2FBangkok')
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var c=j&&j.current; if(!c)return;
+      var w=wx(c.weather_code);
+      document.getElementById('ib-wx').innerHTML=w[0]+' <em>'+Math.round(c.temperature_2m)+'℃</em><span class="ib-x"> '+w[1]+'</span>';
+      document.getElementById('ib-wx-s').innerHTML='<span class="ib-mo">'+w[1]+' · </span>체감 '+Math.round(c.apparent_temperature)+'℃<span class="ib-x"> · 습도 '+Math.round(c.relative_humidity_2m)+'%</span>';
+    }).catch(function(){});
+
+  function setFx(v){
+    document.getElementById('ib-fx').innerHTML='<span class="ib-x">1바트 ≈ </span><em>'+v.toFixed(1)+'원</em>';
+    document.getElementById('ib-fx-s').innerHTML='<span class="ib-mo">1바트 기준</span><span class="ib-x">1,000바트 ≈ '+(Math.round(v*1000/100)*100).toLocaleString('ko-KR')+'원</span>';
+  }
+  fetch('https://api.frankfurter.app/latest?from=THB&to=KRW')
+    .then(function(r){return r.json();})
+    .then(function(j){if(j&&j.rates&&j.rates.KRW)setFx(j.rates.KRW);else throw 0;})
+    .catch(function(){
+      fetch('https://open.er-api.com/v6/latest/THB')
+        .then(function(r){return r.json();})
+        .then(function(j){if(j&&j.rates&&j.rates.KRW)setFx(j.rates.KRW);})
+        .catch(function(){});
+    });
+})();
+</script>
+</body>
+</html>
